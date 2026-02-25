@@ -1,12 +1,10 @@
 import { View, Text, TouchableOpacity, FlatList, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useNotes } from './notesContext';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const [notes, setNotes] = useState([
-    { id: '1', title: 'Testnotat', content: 'Dette er et testnotat' }
-  ]);
+  const { notes } = useNotes();
 
   return (
     <View style={styles.container}>
@@ -22,7 +20,10 @@ export default function HomeScreen() {
         )}
       />
 
-      <TouchableOpacity style={styles.fab} onPress={() => router.push('/new-note')}>
+      <TouchableOpacity 
+        style={styles.fab} 
+        onPress={() => router.push('/new-note')}
+      >
         <Text style={styles.fabText}>+</Text>
       </TouchableOpacity>
     </View>

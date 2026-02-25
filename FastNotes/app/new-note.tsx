@@ -1,9 +1,11 @@
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Keyboard } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
+import { useNotes } from './notesContext';
 
 export default function NewNoteScreen() {
   const router = useRouter();
+  const { addNote } = useNotes();
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
 
@@ -21,7 +23,6 @@ export default function NewNoteScreen() {
           value={title}
           onChangeText={setTitle}
           returnKeyType="next"
-          onSubmitEditing={Keyboard.dismiss}
         />
 
         <TextInput
@@ -30,11 +31,17 @@ export default function NewNoteScreen() {
           value={content}
           onChangeText={setContent}
           multiline
-          onSubmitEditing={Keyboard.dismiss}
           blurOnSubmit={true}
         />
 
-        <TouchableOpacity style={styles.saveButton} onPress={Keyboard.dismiss}>
+        <TouchableOpacity 
+          style={styles.saveButton} 
+          onPress={() => {
+            Keyboard.dismiss();
+            addNote(title || 'No title', content);
+            router.back();
+          }}
+        >
           <Text style={styles.saveButtonText}>Save</Text>
         </TouchableOpacity>
       </ScrollView>
