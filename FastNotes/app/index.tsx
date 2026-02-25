@@ -13,11 +13,14 @@ export default function HomeScreen() {
       <FlatList
         data={notes}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <TouchableOpacity style={styles.noteItem}>
-            <Text style={styles.noteTitle}>{item.title}</Text>
-          </TouchableOpacity>
-        )}
+renderItem={({ item }) => (
+  <TouchableOpacity 
+    style={styles.noteItem}
+    onPress={() => router.push({ pathname: '/note-detail', params: { title: item.title, content: item.content } })}
+  >
+    <Text style={styles.noteTitle}>{item.title}</Text>
+  </TouchableOpacity>
+)}
       />
 
       <TouchableOpacity 
