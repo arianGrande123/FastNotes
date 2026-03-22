@@ -1,23 +1,19 @@
-FastNotes – Assignment 3
+FastNotes – Assignment 4
 
-FastNotes er videreutviklet med støtte for bilder i notater og push-notifikasjoner. Ansatte hos Blodroed Consulting kan nå legge til bilder i notatene sine, og får et varsel når et nytt notat blir opprettet.
+FastNotes er nå produksjonsklar. I denne versjonen har vi lagt til automatiserte tester, optimalisert ytelsen og bygget en kjørbar Android-app.
 
 ---
 
-Teknologi
+Repo
 
-- React Native med Expo
-- Supabase (autentisering, database og storage)
-- TypeScript
-- expo-image-picker
-- expo-notifications
+https://github.com/ariangm/FastNotes
 
 ---
 
 Kom i gang
 
 Krav:
-- Node.js (v18 eller nyere)
+- Node.js (v20.19.4 eller nyere)
 - Expo Go-appen eller en Android-emulator
 - En Supabase-konto
 
@@ -37,72 +33,47 @@ Skann QR-koden med Expo Go, eller trykk a for å åpne i Android-emulator.
 
 ---
 
-Database
+Kjør tester
 
-Kjør følgende SQL i Supabase sitt SQL Editor for å sette opp databasen:
+npm test
 
-create table public.notes (
-  id uuid default gen_random_uuid() primary key,
-  title text not null,
-  content text not null,
-  user_id uuid references auth.users(id) not null,
-  updated_at timestamptz default now() not null,
-  image_url text
-);
+---
 
-alter table public.notes enable row level security;
+Bygg APK med EAS
 
-create policy "All users can read notes"
-on public.notes for select to authenticated using (true);
+1. Installer EAS CLI:
+   npm install -g eas-cli
 
-create policy "Users can create notes"
-on public.notes for insert to authenticated
-with check (auth.uid() = user_id);
+2. Logg inn på Expo:
+   eas login
 
-create policy "Users can update notes"
-on public.notes for update to authenticated
-using (auth.uid() = user_id);
+3. Bygg APK:
+   eas build -p android --profile preview
 
-create policy "Users can delete notes"
-on public.notes for delete to authenticated
-using (auth.uid() = user_id);
-
-For Storage, opprett en bucket kalt note-images og kjør:
-
-create policy "Authenticated users can upload images"
-on storage.objects for insert
-to authenticated
-with check (bucket_id = 'note-images');
-
-create policy "Anyone can view images"
-on storage.objects for select
-to public
-using (bucket_id = 'note-images');
-
-create policy "Users can delete their own images"
-on storage.objects for delete
-to authenticated
-using (bucket_id = 'note-images');
+Bygget kjører i skyen og tar ca. 15-20 minutter. Du kan laste ned APK-filen fra expo.dev når bygget er ferdig.
 
 ---
 
 Krav implementert
 
-Kamera-integrasjon
-- Permissions: Appen ber om tilgang til kamera og bildegalleri første gang funksjonen brukes, og håndterer tilfeller der tilgang blir nektet med en tydelig feilmelding.
-- Capture & Pick: Brukeren kan velge mellom å ta et nytt bilde med kameraet eller velge et eksisterende bilde fra galleriet.
-- Preview: Valgt bilde vises som forhåndsvisning i notatvinduet før brukeren lagrer.
+Testing (35%)
 
-Storage & Validering
-- Client-side Validation: Koden sjekker at bildet er under 15MB og i formatene JPG, PNG eller WebP før opplasting starter. Brukeren får en tydelig feilmelding hvis bildet ikke er gyldig.
-- Supabase Upload: Bildet lastes opp til Supabase Storage med et unikt filnavn basert på tidsstempel og tilfeldig streng, slik at ingen filer overskrives.
-- DB Linking: URL-en til det opplastede bildet lagres i image_url-kolonnen i notes-tabellen og knyttes til riktig notat.
+Unit test – validering og notatopprettelse: Tester sjekker at tomme titler og innhold avvises, og at gyldige notater godtas. Testene kjører med Jest og dekker kjernelogikken uten å være avhengig av eksterne tjenester.
 
-UI/UX
-- Loading States: En spinner vises mens bildet lastes opp, og Lagre-knappen deaktiveres underveis så brukeren ikke kan sende inn flere ganger.
-- Aspect Ratio Handling: Bilder vises med riktig aspektforhold i notatlistene (16:9) og inne i notatet (4:3) slik at de aldri strekkes eller croppes feil.
-- Error Messaging: Appen gir tydelige feilmeldinger for ugyldig format, for stor fil og opplastingsfeil.
+Integration test – bildvalidering: Tester verifiserer at bilder over 15MB avvises, at ugyldige formater som GIF avvises, og at JPG, PNG og WebP godtas.
 
-Notifikasjoner
-- System Permissions: Appen ber om tillatelse fra operativsystemet til å sende varsler ved oppstart.
-- Lokal Trigger: Etter at et notat er lagret vellykket, sendes det en lokal notifikasjon til brukeren med tittelen på det nye notatet i formatet "Nytt notat: [tittel]".
+Auth guard test – tilgangskontroll: Tester verifiserer at brukerobjektet er null når ingen er logget inn, og at et gyldig brukerobjekt returneres når brukeren er autentisert.
+
+Optimalisering (40%)
+
+Log Cleanup: Alle console.log-setninger er fjernet fra kodebasen.
+
+Resource Management – Kamera: Kamerakomponenten bruker useIsFocused fra Expo Navigation for å avmontere skjermen når brukeren navigerer bort. Dette forhindrer at kameraet kjører unødvendig i bakgrunnen.
+
+Paginering: Notatlisten henter kun 5 notater om gangen ved hjelp av Supabase sin .range()-funksjon. En "Last mer"-knapp nederst i listen henter de neste 5 notatene.
+
+Build og dokumentasjon (25%)
+
+App-fil: En kjørbar .apk-fil er vedlagt innleveringen. Filen er bygget med EAS Build og kan installeres på en Android-enhet eller emulator.
+
+Byggeinstruksjoner: Se "Bygg APK med EAS" over.
