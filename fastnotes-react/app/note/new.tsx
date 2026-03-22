@@ -1,3 +1,4 @@
+import { useIsFocused } from '@react-navigation/native'
 import * as ImagePicker from 'expo-image-picker'
 import * as Notifications from 'expo-notifications'
 import { router } from 'expo-router'
@@ -19,6 +20,7 @@ import { uploadImage, validateImage } from '../../lib/imageUtils'
 import { supabase } from '../../lib/supabase'
 
 export default function NewNoteScreen() {
+  const isFocused = useIsFocused()
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
   const [loading, setLoading] = useState(false)
@@ -26,6 +28,8 @@ export default function NewNoteScreen() {
   const [image, setImage] = useState<ImagePicker.ImagePickerAsset | null>(null)
 
   const handlePickImage = async () => {
+    if (!isFocused) return
+
     Alert.alert('Legg til bilde', 'Velg kilde', [
       {
         text: 'Ta bilde',
@@ -79,7 +83,6 @@ export default function NewNoteScreen() {
     let imageUrl: string | null = null
 
     if (image) {
-      // Valider bilde
       const mimeType = image.mimeType ?? 'image/jpeg'
       const fileSize = image.fileSize ?? 0
       const validationError = validateImage(fileSize, mimeType)
@@ -90,7 +93,6 @@ export default function NewNoteScreen() {
         return
       }
 
-      // Last opp bilde
       setUploading(true)
       imageUrl = await uploadImage(image.uri, mimeType)
       setUploading(false)
@@ -110,22 +112,24 @@ export default function NewNoteScreen() {
     })
 
     if (error) Alert.alert('Feil', error.message)
-else {
-  await Notifications.scheduleNotificationAsync({
-    content: {
-      title: 'Nytt notat: ' + title.trim(),
-      body: 'Et nytt notat ble lagt til i Jobb Notater',
-    },
-    trigger: null,
-  })
-  Alert.alert('Suksess!', 'Notatet ble lagret')
-  router.back()
-}
+    else {
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: 'Nytt notat: ' + title.trim(),
+          body: 'Et nytt notat ble lagt til i Jobb Notater',
+        },
+        trigger: { seconds: 2 },
+      })
+      Alert.alert('Suksess!', 'Notatet ble lagret')
+      router.back()
+    }
 
     setLoading(false)
   }
 
   const isBusy = loading || uploading
+
+  if (!isFocused) return null
 
   return (
     <KeyboardAvoidingView
@@ -167,7 +171,7 @@ else {
             <Image
               source={{ uri: image.uri }}
               style={styles.imagePreview}
-              resizeMode="cover"
+              resizeMode="contain"
             />
             {!isBusy && (
               <TouchableOpacity
@@ -246,7 +250,7 @@ const styles = StyleSheet.create({
   imagePreviewContainer: { marginBottom: 12 },
   imagePreview: {
     width: '100%',
-    height: 200,
+    aspectRatio: 4 / 3,
     borderRadius: 8,
     marginBottom: 8,
   },
