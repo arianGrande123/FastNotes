@@ -11,7 +11,7 @@
         "EXPO_PUBLIC_SUPABASE_URL": "https://zpbvutqbciggkmmdyhkr.supabase.co",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpwYnZ1dHFiY2lnZ2ttbWR5aGtyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwNDg4NDQsImV4cCI6MjA4OTYyNDg0NH0.iyDa0fT8DjsnD-J9N52tzJvD57ark0-5yhvQiKXLWnk"
       },
-      "node": "20.0.0"
+      "node": "20.19.4"
     }
   }
 }
