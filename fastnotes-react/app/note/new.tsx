@@ -1,15 +1,17 @@
+import * as ImagePicker from 'expo-image-picker'
 import { router } from 'expo-router'
 import { useState } from 'react'
 import {
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native'
 import { supabase } from '../../lib/supabase'
 
@@ -17,6 +19,43 @@ export default function NewNoteScreen() {
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
   const [loading, setLoading] = useState(false)
+  const [image, setImage] = useState<ImagePicker.ImagePickerAsset | null>(null)
+
+  const handlePickImage = async () => {
+    Alert.alert('Legg til bilde', 'Velg kilde', [
+      {
+        text: 'Ta bilde',
+        onPress: async () => {
+          const { status } = await ImagePicker.requestCameraPermissionsAsync()
+          if (status !== 'granted') {
+            Alert.alert('Feil', 'Du må gi tilgang til kameraet i innstillingene')
+            return
+          }
+          const result = await ImagePicker.launchCameraAsync({
+            mediaTypes: ['images'],
+            quality: 0.8,
+          })
+          if (!result.canceled) setImage(result.assets[0])
+        },
+      },
+      {
+        text: 'Velg fra galleri',
+        onPress: async () => {
+          const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync()
+          if (status !== 'granted') {
+            Alert.alert('Feil', 'Du må gi tilgang til galleriet i innstillingene')
+            return
+          }
+          const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ['images'],
+            quality: 0.8,
+          })
+          if (!result.canceled) setImage(result.assets[0])
+        },
+      },
+      { text: 'Avbryt', style: 'cancel' },
+    ])
+  }
 
   const handleSave = async () => {
     if (!title.trim() || !content.trim()) {
@@ -27,10 +66,16 @@ export default function NewNoteScreen() {
     setLoading(true)
     const { data: { user } } = await supabase.auth.getUser()
 
+    if (!user) {
+      Alert.alert('Feil', 'Du er ikke logget inn')
+      setLoading(false)
+      return
+    }
+
     const { error } = await supabase.from('notes').insert({
       title: title.trim(),
       content: content.trim(),
-      user_id: user?.id,
+      user_id: user.id,
       updated_at: new Date().toISOString(),
     })
 
@@ -58,7 +103,7 @@ export default function NewNoteScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.form}>
+      <ScrollView style={styles.form} contentContainerStyle={styles.formContent}>
         <TextInput
           style={styles.titleInput}
           placeholder="Tittel"
@@ -73,6 +118,28 @@ export default function NewNoteScreen() {
           multiline
           textAlignVertical="top"
         />
+
+        {image && (
+          <View style={styles.imagePreviewContainer}>
+            <Image
+              source={{ uri: image.uri }}
+              style={styles.imagePreview}
+              resizeMode="cover"
+            />
+            <TouchableOpacity
+              style={styles.removeImageButton}
+              onPress={() => setImage(null)}
+            >
+              <Text style={styles.removeImageText}>Fjern bilde</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        <TouchableOpacity style={styles.imageButton} onPress={handlePickImage}>
+          <Text style={styles.imageButtonText}>
+            {image ? '📷 Bytt bilde' : '📷 Legg til bilde'}
+          </Text>
+        </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>
   )
@@ -92,7 +159,8 @@ const styles = StyleSheet.create({
   title: { fontSize: 18, fontWeight: '600', color: '#1a1a1a' },
   backText: { color: '#2563eb', fontSize: 14 },
   saveText: { color: '#2563eb', fontSize: 14, fontWeight: '600' },
-  form: { padding: 16 },
+  form: { flex: 1 },
+  formContent: { padding: 16, paddingBottom: 40 },
   titleInput: {
     fontSize: 20,
     fontWeight: '600',
@@ -104,6 +172,26 @@ const styles = StyleSheet.create({
   contentInput: {
     fontSize: 16,
     lineHeight: 24,
-    minHeight: 300,
+    minHeight: 200,
+    marginBottom: 24,
   },
+  imageButton: {
+    borderWidth: 1,
+    borderColor: '#2563eb',
+    borderStyle: 'dashed',
+    borderRadius: 8,
+    padding: 14,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  imageButtonText: { color: '#2563eb', fontSize: 15 },
+  imagePreviewContainer: { marginBottom: 12 },
+  imagePreview: {
+    width: '100%',
+    height: 200,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  removeImageButton: { alignItems: 'center' },
+  removeImageText: { color: '#ef4444', fontSize: 14 },
 })
