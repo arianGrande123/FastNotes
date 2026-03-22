@@ -1,4 +1,5 @@
 import * as ImagePicker from 'expo-image-picker'
+import * as Notifications from 'expo-notifications'
 import { router } from 'expo-router'
 import { useState } from 'react'
 import {
@@ -109,10 +110,17 @@ export default function NewNoteScreen() {
     })
 
     if (error) Alert.alert('Feil', error.message)
-    else {
-      Alert.alert('Suksess!', 'Notatet ble lagret')
-      router.back()
-    }
+else {
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title: 'Nytt notat: ' + title.trim(),
+      body: 'Et nytt notat ble lagt til i Jobb Notater',
+    },
+    trigger: null,
+  })
+  Alert.alert('Suksess!', 'Notatet ble lagret')
+  router.back()
+}
 
     setLoading(false)
   }
