@@ -1,6 +1,7 @@
 import { router, useFocusEffect } from 'expo-router'
 import { useCallback, useState } from 'react'
 import {
+  ActivityIndicator,
   Alert,
   FlatList,
   Image,
@@ -20,9 +21,13 @@ type Note = {
   image_url: string | null
 }
 
+const PAGE_SIZE = 5
+
 export default function HomeScreen() {
   const [notes, setNotes] = useState<Note[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [hasMore, setHasMore] = useState(true)
 
   useFocusEffect(
     useCallback(() => {
@@ -32,14 +37,37 @@ export default function HomeScreen() {
 
   const fetchNotes = async () => {
     setLoading(true)
+    setHasMore(true)
     const { data, error } = await supabase
       .from('notes')
       .select('*')
       .order('updated_at', { ascending: false })
+      .range(0, PAGE_SIZE - 1)
 
     if (error) Alert.alert('Feil', error.message)
-    else setNotes(data || [])
+    else {
+      setNotes(data || [])
+      setHasMore((data || []).length === PAGE_SIZE)
+    }
     setLoading(false)
+  }
+
+  const fetchMore = async () => {
+    if (loadingMore || !hasMore) return
+    setLoadingMore(true)
+
+    const { data, error } = await supabase
+      .from('notes')
+      .select('*')
+      .order('updated_at', { ascending: false })
+      .range(notes.length, notes.length + PAGE_SIZE - 1)
+
+    if (error) Alert.alert('Feil', error.message)
+    else {
+      setNotes(prev => [...prev, ...(data || [])])
+      setHasMore((data || []).length === PAGE_SIZE)
+    }
+    setLoadingMore(false)
   }
 
   const handleLogout = async () => {
@@ -74,7 +102,7 @@ export default function HomeScreen() {
       </View>
 
       {loading ? (
-        <Text style={styles.emptyText}>Laster...</Text>
+        <ActivityIndicator size="large" color="#2563eb" style={styles.loader} />
       ) : notes.length === 0 ? (
         <Text style={styles.emptyText}>Ingen notater ennå. Trykk + for å lage ett!</Text>
       ) : (
@@ -105,6 +133,23 @@ export default function HomeScreen() {
               </View>
             </TouchableOpacity>
           )}
+          ListFooterComponent={
+            hasMore ? (
+              <TouchableOpacity
+                style={styles.loadMoreButton}
+                onPress={fetchMore}
+                disabled={loadingMore}
+              >
+                {loadingMore ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={styles.loadMoreText}>Last mer</Text>
+                )}
+              </TouchableOpacity>
+            ) : (
+              <Text style={styles.noMoreText}>Ingen flere notater</Text>
+            )
+          }
         />
       )}
 
@@ -129,6 +174,7 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 24, fontWeight: 'bold', color: '#1a1a1a' },
   logoutText: { color: '#ef4444', fontSize: 14, fontWeight: '600' },
+  loader: { marginTop: 40 },
   emptyText: { textAlign: 'center', marginTop: 40, color: '#666', fontSize: 16 },
   noteCard: {
     backgroundColor: '#fff',
@@ -145,12 +191,20 @@ const styles = StyleSheet.create({
     width: '100%',
     aspectRatio: 16 / 9,
   },
-  noteContent: {
-    padding: 16,
-  },
+  noteContent: { padding: 16 },
   noteTitle: { fontSize: 16, fontWeight: '600', color: '#1a1a1a' },
   notePreview: { fontSize: 14, color: '#666', marginTop: 4, lineHeight: 20 },
   noteDate: { fontSize: 12, color: '#999', marginTop: 8 },
+  loadMoreButton: {
+    backgroundColor: '#2563eb',
+    margin: 16,
+    padding: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 100,
+  },
+  loadMoreText: { color: '#fff', fontSize: 15, fontWeight: '600' },
+  noMoreText: { textAlign: 'center', color: '#999', fontSize: 14, padding: 16, marginBottom: 80 },
   fab: {
     position: 'absolute',
     bottom: 32,
