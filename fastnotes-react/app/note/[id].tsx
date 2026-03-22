@@ -2,6 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
 import {
   Alert,
+  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -17,6 +18,7 @@ export default function NoteDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
+  const [imageUrl, setImageUrl] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
@@ -35,6 +37,7 @@ export default function NoteDetailScreen() {
     else {
       setTitle(data.title)
       setContent(data.content)
+      setImageUrl(data.image_url ?? null)
     }
     setLoading(false)
   }
@@ -80,7 +83,7 @@ export default function NoteDetailScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.form}>
+      <ScrollView style={styles.form} contentContainerStyle={styles.formContent}>
         <TextInput
           style={styles.titleInput}
           placeholder="Tittel"
@@ -95,6 +98,16 @@ export default function NoteDetailScreen() {
           multiline
           textAlignVertical="top"
         />
+
+        {imageUrl && (
+          <View style={styles.imageContainer}>
+            <Image
+              source={{ uri: imageUrl }}
+              style={styles.image}
+              resizeMode="contain"
+            />
+          </View>
+        )}
       </ScrollView>
     </KeyboardAvoidingView>
   )
@@ -114,7 +127,8 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 18, fontWeight: '600', color: '#1a1a1a' },
   backText: { color: '#2563eb', fontSize: 14 },
   saveText: { color: '#2563eb', fontSize: 14, fontWeight: '600' },
-  form: { padding: 16 },
+  form: { flex: 1 },
+  formContent: { padding: 16, paddingBottom: 40 },
   titleInput: {
     fontSize: 20,
     fontWeight: '600',
@@ -126,6 +140,17 @@ const styles = StyleSheet.create({
   contentInput: {
     fontSize: 16,
     lineHeight: 24,
-    minHeight: 300,
+    minHeight: 200,
+    marginBottom: 24,
+  },
+  imageContainer: {
+    marginTop: 8,
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: '#f5f5f5',
+  },
+  image: {
+    width: '100%',
+    aspectRatio: 4/3,
   },
 })

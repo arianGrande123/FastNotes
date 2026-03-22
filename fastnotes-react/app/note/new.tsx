@@ -2,6 +2,7 @@ import * as ImagePicker from 'expo-image-picker'
 import { router } from 'expo-router'
 import { useState } from 'react'
 import {
+  ActivityIndicator,
   Alert,
   Image,
   KeyboardAvoidingView,
@@ -13,12 +14,14 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native'
+import { uploadImage, validateImage } from '../../lib/imageUtils'
 import { supabase } from '../../lib/supabase'
 
 export default function NewNoteScreen() {
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
   const [loading, setLoading] = useState(false)
+  const [uploading, setUploading] = useState(false)
   const [image, setImage] = useState<ImagePicker.ImagePickerAsset | null>(null)
 
   const handlePickImage = async () => {
@@ -72,11 +75,37 @@ export default function NewNoteScreen() {
       return
     }
 
+    let imageUrl: string | null = null
+
+    if (image) {
+      // Valider bilde
+      const mimeType = image.mimeType ?? 'image/jpeg'
+      const fileSize = image.fileSize ?? 0
+      const validationError = validateImage(fileSize, mimeType)
+
+      if (validationError) {
+        Alert.alert('Ugyldig bilde', validationError)
+        setLoading(false)
+        return
+      }
+
+      // Last opp bilde
+      setUploading(true)
+      imageUrl = await uploadImage(image.uri, mimeType)
+      setUploading(false)
+
+      if (!imageUrl) {
+        setLoading(false)
+        return
+      }
+    }
+
     const { error } = await supabase.from('notes').insert({
       title: title.trim(),
       content: content.trim(),
       user_id: user.id,
       updated_at: new Date().toISOString(),
+      image_url: imageUrl,
     })
 
     if (error) Alert.alert('Feil', error.message)
@@ -88,18 +117,22 @@ export default function NewNoteScreen() {
     setLoading(false)
   }
 
+  const isBusy = loading || uploading
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
+        <TouchableOpacity onPress={() => router.back()} disabled={isBusy}>
           <Text style={styles.backText}>← Tilbake</Text>
         </TouchableOpacity>
         <Text style={styles.title}>Nytt notat</Text>
-        <TouchableOpacity onPress={handleSave} disabled={loading}>
-          <Text style={styles.saveText}>{loading ? 'Lagrer...' : 'Lagre'}</Text>
+        <TouchableOpacity onPress={handleSave} disabled={isBusy}>
+          <Text style={[styles.saveText, isBusy && styles.saveTextDisabled]}>
+            {isBusy ? 'Lagrer...' : 'Lagre'}
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -109,6 +142,7 @@ export default function NewNoteScreen() {
           placeholder="Tittel"
           value={title}
           onChangeText={setTitle}
+          editable={!isBusy}
         />
         <TextInput
           style={styles.contentInput}
@@ -117,6 +151,7 @@ export default function NewNoteScreen() {
           onChangeText={setContent}
           multiline
           textAlignVertical="top"
+          editable={!isBusy}
         />
 
         {image && (
@@ -126,16 +161,29 @@ export default function NewNoteScreen() {
               style={styles.imagePreview}
               resizeMode="cover"
             />
-            <TouchableOpacity
-              style={styles.removeImageButton}
-              onPress={() => setImage(null)}
-            >
-              <Text style={styles.removeImageText}>Fjern bilde</Text>
-            </TouchableOpacity>
+            {!isBusy && (
+              <TouchableOpacity
+                style={styles.removeImageButton}
+                onPress={() => setImage(null)}
+              >
+                <Text style={styles.removeImageText}>Fjern bilde</Text>
+              </TouchableOpacity>
+            )}
           </View>
         )}
 
-        <TouchableOpacity style={styles.imageButton} onPress={handlePickImage}>
+        {uploading && (
+          <View style={styles.uploadingContainer}>
+            <ActivityIndicator size="large" color="#2563eb" />
+            <Text style={styles.uploadingText}>Laster opp bilde...</Text>
+          </View>
+        )}
+
+        <TouchableOpacity
+          style={[styles.imageButton, isBusy && styles.imageButtonDisabled]}
+          onPress={handlePickImage}
+          disabled={isBusy}
+        >
           <Text style={styles.imageButtonText}>
             {image ? '📷 Bytt bilde' : '📷 Legg til bilde'}
           </Text>
@@ -159,6 +207,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 18, fontWeight: '600', color: '#1a1a1a' },
   backText: { color: '#2563eb', fontSize: 14 },
   saveText: { color: '#2563eb', fontSize: 14, fontWeight: '600' },
+  saveTextDisabled: { color: '#93c5fd' },
   form: { flex: 1 },
   formContent: { padding: 16, paddingBottom: 40 },
   titleInput: {
@@ -184,6 +233,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 8,
   },
+  imageButtonDisabled: { borderColor: '#93c5fd' },
   imageButtonText: { color: '#2563eb', fontSize: 15 },
   imagePreviewContainer: { marginBottom: 12 },
   imagePreview: {
@@ -194,4 +244,10 @@ const styles = StyleSheet.create({
   },
   removeImageButton: { alignItems: 'center' },
   removeImageText: { color: '#ef4444', fontSize: 14 },
+  uploadingContainer: {
+    alignItems: 'center',
+    padding: 16,
+    gap: 8,
+  },
+  uploadingText: { color: '#2563eb', fontSize: 14 },
 })
