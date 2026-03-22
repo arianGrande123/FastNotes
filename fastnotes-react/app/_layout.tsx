@@ -61,6 +61,5 @@ export default function RootLayout() {
 async function registerForNotifications() {
   const { status } = await Notifications.requestPermissionsAsync()
   if (status !== 'granted') {
-    console.log('Notification permission not granted')
   }
 }
