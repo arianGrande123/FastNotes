@@ -118,7 +118,7 @@ export default function NewNoteScreen() {
           title: 'Nytt notat: ' + title.trim(),
           body: 'Et nytt notat ble lagt til i Jobb Notater',
         },
-        trigger: { seconds: 2 },
+       trigger: { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: 2 },
       })
       Alert.alert('Suksess!', 'Notatet ble lagret')
       router.back()
