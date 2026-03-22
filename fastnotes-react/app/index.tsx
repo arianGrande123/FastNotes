@@ -3,6 +3,7 @@ import { useCallback, useState } from 'react'
 import {
   Alert,
   FlatList,
+  Image,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -16,6 +17,7 @@ type Note = {
   content: string
   user_id: string
   updated_at: string
+  image_url: string | null
 }
 
 export default function HomeScreen() {
@@ -85,10 +87,22 @@ export default function HomeScreen() {
               onPress={() => router.push(('/note/' + item.id) as any)}
               onLongPress={() => handleDelete(item.id)}
             >
-              <Text style={styles.noteTitle}>{item.title}</Text>
-              <Text style={styles.noteDate}>
-                {new Date(item.updated_at).toLocaleDateString('no-NO')}
-              </Text>
+              {item.image_url && (
+                <Image
+                  source={{ uri: item.image_url }}
+                  style={styles.noteImage}
+                  resizeMode="cover"
+                />
+              )}
+              <View style={styles.noteContent}>
+                <Text style={styles.noteTitle}>{item.title}</Text>
+                <Text style={styles.notePreview} numberOfLines={2}>
+                  {item.content}
+                </Text>
+                <Text style={styles.noteDate}>
+                  {new Date(item.updated_at).toLocaleDateString('no-NO')}
+                </Text>
+              </View>
             </TouchableOpacity>
           )}
         />
@@ -120,15 +134,23 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     margin: 8,
     marginHorizontal: 16,
-    padding: 16,
     borderRadius: 8,
+    overflow: 'hidden',
     shadowColor: '#000',
     shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 2,
   },
+  noteImage: {
+    width: '100%',
+    aspectRatio: 16 / 9,
+  },
+  noteContent: {
+    padding: 16,
+  },
   noteTitle: { fontSize: 16, fontWeight: '600', color: '#1a1a1a' },
-  noteDate: { fontSize: 12, color: '#999', marginTop: 4 },
+  notePreview: { fontSize: 14, color: '#666', marginTop: 4, lineHeight: 20 },
+  noteDate: { fontSize: 12, color: '#999', marginTop: 8 },
   fab: {
     position: 'absolute',
     bottom: 32,
