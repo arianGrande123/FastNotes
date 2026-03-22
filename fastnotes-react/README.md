@@ -6,7 +6,7 @@ FastNotes er nå produksjonsklar. I denne versjonen har vi lagt til automatisert
 
 Repo
 
-https://github.com/ariangm/FastNotes
+https://github.com/arianGrande123/FastNotes
 
 ---
 
